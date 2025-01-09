@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import com.example.ToDoApplication.models.Tasks;
 import com.example.ToDoApplication.repositories.TasksRepository;
+import com.example.ToDoExceptions.TaskAlreadyExistsException;
+import com.example.ToDoExceptions.TaskNotFoundException;
 
 @Service
 public class TasksService {
@@ -23,6 +25,11 @@ public class TasksService {
 	private TasksRepository tasksRepository;
 
 	public Tasks createNewTask(Tasks task) {
+		Optional<Tasks> findTask = tasksRepository.findByTask(task.getTask().toLowerCase());
+		if(findTask.isPresent())
+			throw new TaskAlreadyExistsException("Task already exist with task id - " + findTask.get().getId());
+			
+		task.setTask(task.getTask().toLowerCase());
 		return tasksRepository.save(task);
 	}
 
@@ -37,19 +44,24 @@ public class TasksService {
 			task.setId(id);
 			return tasksRepository.save(task);
 		}
-		return null;
+		throw new TaskNotFoundException("Task <" + id + "> does not exist.");
 	}
 
-	public boolean deleteTask(Long id) {
+	public void deleteTask(Long id) {
 		if(tasksRepository.existsById(id)) {
 			tasksRepository.deleteById(id);
-			return true;
+			return;
 		}
-		return false;
+		throw new TaskNotFoundException("Task <" + id + "> does not exist.");
 	}
 
-	public Optional<Tasks> getTaskById(Long id) {
-		return tasksRepository.findById(id);
+	public Optional<Tasks> getTaskById(Long id) throws Exception {
+		try {
+			return tasksRepository.findById(id);
+		}
+		catch (Exception e) {
+			throw new Exception(e.getMessage());
+		}
 	}
 
 }
